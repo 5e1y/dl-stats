@@ -1,0 +1,41 @@
+name: snapshot
+
+on:
+  schedule:
+    # 05:17 UTC — une heure creuse, le scheduler GitHub décale les crons ronds.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+# Un seul relevé à la fois : deux jobs concurrents se marcheraient dessus au commit.
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: node snapshot.mjs
+        env:
+          # Authentifie les appels à l'API GitHub : 1000 req/h au lieu de 60.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit
+        run: |
+          if git diff --quiet -- data/history.json; then
+            echo "rien à committer"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/history.json
+          git commit -m "snapshot $(date -u +%Y-%m-%d)"
+          git push
