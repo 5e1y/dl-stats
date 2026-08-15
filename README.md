@@ -33,6 +33,23 @@ Un relevé identique au précédent n'est pas enregistré, sauf s'il date de plu
 d'une semaine — ce qui garde un point de contrôle pour distinguer un plateau
 d'une interruption du cron.
 
+## `data/backfill.json` — l'avant, estimé
+
+Les relevés commencent le 15 août 2026 ; tout ce qui précède est définitivement
+non mesurable. `backfill.mjs` en produit une **estimation** : le total cumulé de
+chaque version est réparti sur les jours suivant sa sortie en `exp(-âge/τ)`
+(τ = 10 jours par défaut), ce qui reproduit le profil d'une release desktop —
+piquée les premiers jours, puis en traîne. La somme par version vaut exactement
+le compteur observé.
+
+C'est un modèle, pas une mesure, et le dashboard l'affiche hachuré pour cette
+raison. Il donne la forme (quand les versions ont marché) et le volume total,
+jamais la valeur d'un jour précis.
+
+Le fichier est **figé** : les compteurs qui montent après sa génération sont
+mesurés par le cron, jamais réestimés — aucun recouvrement, aucun double
+comptage. Le régénérer réécrirait le passé et n'a d'intérêt que pour changer τ.
+
 ## Consommateur
 
 Le dashboard lit ce fichier directement via `raw.githubusercontent.com`
